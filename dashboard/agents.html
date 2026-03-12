@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentOS — Agents</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00ff88;
+      --accent2: #0088ff;
+      --text: #e0e0e0;
+      --muted: #555577;
+      --danger: #ff4466;
+      --warn: #ffaa00;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; }
+    .logo span { color: var(--accent); }
+
+    .nav { display: flex; gap: 1rem; }
+    .nav a {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      padding: 0.4rem 0.8rem;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      transition: all 0.15s;
+    }
+    .nav a:hover { color: var(--text); border-color: var(--border); }
+    .nav a.active { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Main layout ──────────────────────────────────── */
+    .main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1px;
+      background: var(--border);
+      margin: 1px;
+      flex: 1;
+    }
+
+    .panel {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 1.2rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .panel-body {
+      padding: 1.2rem 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* ── Counters ─────────────────────────────────────── */
+    .counter-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .counter {
+      flex: 1;
+      padding: 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .counter-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    .counter-label {
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 0.2rem;
+    }
+
+    /* ── Launch section ───────────────────────────────── */
+    .section-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+      margin-top: 1rem;
+    }
+
+    .section-label:first-child { margin-top: 0; }
+
+    select, input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: 3px;
+      outline: none;
+      transition: border-color 0.15s;
+      margin-bottom: 0.6rem;
+      -webkit-appearance: none;
+    }
+
+    select:focus, input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    .template-desc {
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 0.8rem;
+      min-height: 2.5em;
+    }
+
+    /* ── Buttons ──────────────────────────────────────── */
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover:not(:disabled) { background: var(--accent); color: var(--bg); }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn.full { width: 100%; justify-content: center; }
+
+    .btn.danger { border-color: var(--danger); color: var(--danger); }
+    .btn.danger:hover { background: var(--danger); color: var(--bg); }
+
+    .btn.ghost { border-color: var(--border); color: var(--muted); font-size: 0.68rem; padding: 0.3rem 0.7rem; }
+    .btn.ghost:hover { border-color: var(--muted); color: var(--text); background: transparent; }
+
+    /* ── Agent cards ──────────────────────────────────── */
+    .agent-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .agent-card {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .agent-card:hover { border-color: var(--muted); }
+    .agent-card.selected { border-color: var(--accent); }
+
+    .agent-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+    }
+
+    .agent-name { font-size: 0.85rem; }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+
+    .status-dot.running  { background: var(--accent); animation: blink 1.5s infinite; }
+    .status-dot.stopped  { background: var(--muted); }
+    .status-dot.crashed  { background: var(--danger); }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .agent-meta {
+      font-size: 0.68rem;
+      color: var(--muted);
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .status-label { font-size: 0.65rem; }
+    .status-label.running { color: var(--accent); }
+    .status-label.crashed { color: var(--danger); }
+    .status-label.stopped { color: var(--muted); }
+
+    /* ── Log viewer ───────────────────────────────────── */
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .log-input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .log-input-row input {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    .log-output {
+      font-size: 0.72rem;
+      line-height: 1.7;
+      color: var(--muted);
+      overflow-y: auto;
+      flex: 1;
+      padding: 1rem 1.5rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-line { margin-bottom: 0.1rem; }
+    .log-line .ts { opacity: 0.35; margin-right: 0.5rem; }
+    .log-line.alert { color: var(--warn); }
+    .log-line.error { color: var(--danger); }
+    .log-line.ok    { color: var(--accent); }
+
+    .empty-log {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-align: center;
+      line-height: 2;
+    }
+
+    /* ── Toast ────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.7rem 1.2rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.25s ease;
+      z-index: 1000;
+    }
+
+    #toast.show        { opacity: 1; transform: translateY(0); }
+    #toast.ok          { border-color: var(--accent); color: var(--accent); }
+    #toast.warn        { border-color: var(--warn); color: var(--warn); }
+    #toast.err         { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Responsive ───────────────────────────────────── */
+    @media (max-width: 750px) {
+      .main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Agent<span>OS</span> — Agents</div>
+  <nav class="nav">
+    <a href="/">Dashboard</a>
+    <a href="/model-manager">Models</a>
+    <a href="/agents.html" class="active">Agents</a>
+  </nav>
+</header>
+
+<div class="main">
+
+  <!-- ── LEFT: Agent list + launch ───────────────────── -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Running Agents</span>
+      <div style="display:flex;gap:0.5rem">
+        <span id="count-running" style="font-size:0.7rem;color:var(--accent)">0 running</span>
+        <span style="color:var(--muted);font-size:0.7rem">/</span>
+        <span style="font-size:0.7rem;color:var(--muted)">5 max</span>
+      </div>
+    </div>
+
+    <div class="panel-body">
+
+      <!-- Counters -->
+      <div class="counter-row">
+        <div class="counter">
+          <div class="counter-value" id="cnt-running">0</div>
+          <div class="counter-label">Running</div>
+        </div>
+        <div class="counter">
+          <div class="counter-value" id="cnt-stopped" style="color:var(--muted)">0</div>
+          <div class="counter-label">Stopped</div>
+        </div>
+        <div class="counter">
+          <div class="counter-value" id="cnt-crashed" style="color:var(--danger)">0</div>
+          <div class="counter-label">Crashed</div>
+        </div>
+      </div>
+
+      <!-- Agent list -->
+      <div class="agent-list" id="agent-list">
+        <div style="color:var(--muted);font-size:0.75rem;text-align:center;padding:1rem 0">
+          No agents yet. Launch one below.
+        </div>
+      </div>
+
+      <div style="height:1px;background:var(--border);margin:1.2rem 0"></div>
+
+      <!-- Launch form -->
+      <div class="section-label">Launch New Agent</div>
+
+      <label class="section-label" style="margin-top:0.8rem">Template</label>
+      <select id="template-select" onchange="onTemplateChange()">
+        <option value="">Loading templates...</option>
+      </select>
+      <div class="template-desc" id="template-desc">Select a template above.</div>
+
+      <label class="section-label">Agent Name (optional)</label>
+      <input type="text" id="agent-name" placeholder="e.g. my-monitor-1" maxlength="50" />
+
+      <button class="btn full" id="launch-btn" onclick="launchAgent()">
+        ▶ Launch Agent
+      </button>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Log viewer ────────────────────────────── -->
+  <div class="panel" id="log-panel">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title" id="log-title">Agent Logs</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:0.2rem" id="log-subtitle">
+          Select an agent to view logs
+        </div>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <label style="font-size:0.65rem;color:var(--muted);display:flex;align-items:center;gap:0.4rem;cursor:pointer">
+          <input type="checkbox" id="autoscroll" checked style="accent-color:var(--accent)"> autoscroll
+        </label>
+        <button class="btn ghost" id="kill-btn" onclick="killSelected()" style="display:none">
+          ■ Kill
+        </button>
+      </div>
+    </div>
+
+    <!-- Input row (shown for interactive agents) -->
+    <div class="log-input-row" id="input-row" style="display:none;padding:0.6rem 1.5rem;border-bottom:1px solid var(--border)">
+      <input type="text" id="agent-input" placeholder="Send input to agent..." onkeydown="if(event.key==='Enter')sendInput()" />
+      <button class="btn" onclick="sendInput()">Send</button>
+    </div>
+
+    <div class="log-output" id="log-output">
+      <div class="empty-log">
+        Select an agent on the left<br>to view its live logs
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const RUNNER_URL = 'http://' + location.hostname + ':3001';
+
+  let allAgents = [];
+  let templates = [];
+  let selectedId = null;
+  let logPollTimer = null;
+  let lastLogCount = 0;
+
+  // ── Toast ────────────────────────────────────────────
+  let toastTimer;
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.className = '', 3000);
+  }
+
+  // ── Templates ────────────────────────────────────────
+  async function loadTemplates() {
+    try {
+      const res = await fetch(`${RUNNER_URL}/templates`);
+      const data = await res.json();
+      templates = data.templates || [];
+      const sel = document.getElementById('template-select');
+      sel.innerHTML = templates.map(t =>
+        `<option value="${t.id}">${t.name}</option>`
+      ).join('');
+      onTemplateChange();
+    } catch (_) {
+      document.getElementById('template-select').innerHTML =
+        '<option value="">Could not reach agent runner</option>';
+      document.getElementById('template-desc').textContent =
+        'Agent runner is not running. Start it with: python3 agents/agent-runner.py';
+    }
+  }
+
+  function onTemplateChange() {
+    const id = document.getElementById('template-select').value;
+    const tmpl = templates.find(t => t.id === id);
+    document.getElementById('template-desc').textContent =
+      tmpl ? tmpl.desc : '';
+  }
+
+  // ── Agent list ────────────────────────────────────────
+  async function fetchAgents() {
+    try {
+      const res = await fetch(`${RUNNER_URL}/agents`);
+      const data = await res.json();
+      allAgents = data.agents || [];
+      renderAgentList();
+      updateCounters();
+    } catch (_) {}
+  }
+
+  function renderAgentList() {
+    const list = document.getElementById('agent-list');
+
+    if (allAgents.length === 0) {
+      list.innerHTML = `<div style="color:var(--muted);font-size:0.75rem;text-align:center;padding:1rem 0">
+        No agents yet. Launch one below.
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = allAgents.map(a => `
+      <div class="agent-card ${a.id === selectedId ? 'selected' : ''}"
+           onclick="selectAgent('${a.id}')">
+        <div class="agent-card-top">
+          <span class="agent-name">
+            <span class="status-dot ${a.status}"></span>${a.name}
+          </span>
+          <span class="status-label ${a.status}">${a.status.toUpperCase()}</span>
+        </div>
+        <div class="agent-meta">
+          <span>${a.template}</span>
+          <span>pid ${a.pid}</span>
+          <span>${formatAge(a.start_time)}</span>
+          <span>${a.log_lines} lines</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateCounters() {
+    const running = allAgents.filter(a => a.status === 'running').length;
+    const stopped = allAgents.filter(a => a.status === 'stopped').length;
+    const crashed = allAgents.filter(a => a.status === 'crashed').length;
+    document.getElementById('cnt-running').textContent = running;
+    document.getElementById('cnt-stopped').textContent = stopped;
+    document.getElementById('cnt-crashed').textContent = crashed;
+    document.getElementById('count-running').textContent = `${running} running`;
+  }
+
+  function formatAge(startTs) {
+    if (!startTs) return '';
+    const sec = Math.floor(Date.now() / 1000 - startTs);
+    if (sec < 60) return `${sec}s ago`;
+    if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
+    return `${Math.floor(sec / 3600)}h ago`;
+  }
+
+  // ── Select + logs ─────────────────────────────────────
+  function selectAgent(id) {
+    selectedId = id;
+    lastLogCount = 0;
+    renderAgentList();
+
+    const agent = allAgents.find(a => a.id === id);
+    if (!agent) return;
+
+    document.getElementById('log-title').textContent = agent.name;
+    document.getElementById('log-subtitle').textContent =
+      `${agent.template} · pid ${agent.pid} · started ${formatAge(agent.start_time)}`;
+
+    const killBtn = document.getElementById('kill-btn');
+    killBtn.style.display = agent.status === 'running' ? '' : 'none';
+
+    // Show input row for interactive agents
+    const inputRow = document.getElementById('input-row');
+    inputRow.style.display = agent.template === 'chat' || agent.template === 'summarizer-agent' ? '' : 'none';
+
+    fetchLogs(id);
+
+    // Start polling logs
+    if (logPollTimer) clearInterval(logPollTimer);
+    logPollTimer = setInterval(() => fetchLogs(selectedId), 2000);
+  }
+
+  async function fetchLogs(id) {
+    if (!id) return;
+    try {
+      const res = await fetch(`${RUNNER_URL}/agents/${id}/logs`);
+      const data = await res.json();
+      const lines = data.logs || [];
+      if (lines.length === lastLogCount) return; // Nothing new
+      lastLogCount = lines.length;
+      renderLogs(lines);
+    } catch (_) {}
+  }
+
+  function renderLogs(lines) {
+    const output = document.getElementById('log-output');
+    if (lines.length === 0) {
+      output.innerHTML = '<div class="empty-log">No log output yet...</div>';
+      return;
+    }
+
+    output.innerHTML = lines.map(entry => {
+      const ts = new Date(entry.ts * 1000).toLocaleTimeString('en-GB');
+      const line = entry.line || '';
+      let cls = '';
+      if (line.includes('[ALERT]') || line.includes('WARN')) cls = 'alert';
+      else if (line.includes('Error') || line.includes('error') || line.includes('[runner]') && line.includes('crashed')) cls = 'error';
+      else if (line.includes('[OK]') || line.includes('started') || line.includes('ready')) cls = 'ok';
+      return `<div class="log-line ${cls}"><span class="ts">${ts}</span>${escapeHtml(line)}</div>`;
+    }).join('');
+
+    if (document.getElementById('autoscroll').checked) {
+      output.scrollTop = output.scrollHeight;
+    }
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Launch ────────────────────────────────────────────
+  async function launchAgent() {
+    const template = document.getElementById('template-select').value;
+    const name = document.getElementById('agent-name').value.trim();
+    if (!template) { toast('Select a template first', 'warn'); return; }
+
+    const btn = document.getElementById('launch-btn');
+    btn.disabled = true;
+    btn.textContent = 'Launching...';
+
+    try {
+      const res = await fetch(`${RUNNER_URL}/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template, name }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`Launched: ${data.name}`, 'ok');
+        document.getElementById('agent-name').value = '';
+        await fetchAgents();
+        selectAgent(data.id);
+      } else {
+        toast(`Launch failed: ${data.error}`, 'err');
+      }
+    } catch (_) {
+      toast('Could not reach agent runner on port 3001', 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '▶ Launch Agent';
+    }
+  }
+
+  // ── Kill ──────────────────────────────────────────────
+  async function killSelected() {
+    if (!selectedId) return;
+    const agent = allAgents.find(a => a.id === selectedId);
+    if (!agent) return;
+    if (!confirm(`Kill agent "${agent.name}"?`)) return;
+
+    try {
+      const res = await fetch(`${RUNNER_URL}/agents/${selectedId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) {
+        toast(data.message, 'ok');
+        await fetchAgents();
+      } else {
+        toast(`Kill failed: ${data.error}`, 'err');
+      }
+    } catch (_) {
+      toast('Could not reach agent runner', 'err');
+    }
+  }
+
+  // ── Send input ────────────────────────────────────────
+  async function sendInput() {
+    if (!selectedId) return;
+    const input = document.getElementById('agent-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    try {
+      const res = await fetch(`${RUNNER_URL}/agents/${selectedId}/input`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (!data.ok) toast(`Send failed: ${data.error}`, 'err');
+    } catch (_) {
+      toast('Could not send input', 'err');
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  loadTemplates();
+  fetchAgents();
+  setInterval(fetchAgents, 3000);
+</script>
+
+</body>
+</html>

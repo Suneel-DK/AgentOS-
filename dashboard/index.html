@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentOS Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00ff88;
+      --accent2: #0088ff;
+      --text: #e0e0e0;
+      --muted: #555577;
+      --danger: #ff4466;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,255,136,0.015) 2px,
+        rgba(0,255,136,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      letter-spacing: -0.03em;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .status-bar {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .status-bar .live::before {
+      content: '●';
+      color: var(--accent);
+      margin-right: 0.4rem;
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      margin: 1px;
+    }
+
+    .card {
+      background: var(--surface);
+      padding: 1.5rem;
+      animation: fadeIn 0.4s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes fadeIn {
+      from { opacity:0; transform: translateY(8px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.10s; }
+    .card:nth-child(3) { animation-delay: 0.15s; }
+    .card:nth-child(4) { animation-delay: 0.20s; }
+    .card:nth-child(5) { animation-delay: 0.25s; }
+    .card:nth-child(6) { animation-delay: 0.30s; }
+
+    .card-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+    }
+
+    .card-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .card-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+
+    /* Bar meter */
+    .bar-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-top: 0.8rem;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 1s ease;
+    }
+
+    .bar-fill.warm  { background: #ffaa00; }
+    .bar-fill.hot   { background: var(--danger); }
+
+    /* Models section */
+    .section {
+      background: var(--surface);
+      margin: 1px;
+      padding: 1.5rem 2rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .model-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .model-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: border-color 0.2s;
+    }
+
+    .model-row:hover { border-color: var(--accent); cursor: pointer; }
+
+    .model-name { font-size: 0.85rem; }
+
+    .model-badge {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      background: rgba(0,255,136,0.1);
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .model-badge.idle {
+      background: rgba(255,255,255,0.05);
+      color: var(--muted);
+    }
+
+    /* Actions */
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; }
+
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.6rem 1.2rem;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: all 0.2s;
+    }
+
+    .btn:hover { background: var(--accent); color: var(--bg); }
+
+    .btn.secondary {
+      border-color: var(--border);
+      color: var(--muted);
+    }
+
+    .btn.secondary:hover { border-color: var(--muted); color: var(--text); background: transparent; }
+
+    /* Log */
+    .log {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.8;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    .log .ok   { color: var(--accent); }
+    .log .info { color: var(--accent2); }
+    .log .warn { color: #ffaa00; }
+
+    /* Full-width cards */
+    .span2 { grid-column: span 2; }
+    .span3 { grid-column: span 3; }
+
+    /* Loading / error states */
+    .loading { opacity: 0.4; }
+
+    .error-banner {
+      display: none;
+      background: rgba(255,68,102,0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-size: 0.72rem;
+      padding: 0.6rem 1.2rem;
+      margin: 1px;
+      text-align: center;
+    }
+
+    .error-banner.visible { display: block; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .span2, .span3 { grid-column: span 2; }
+    }
+
+    @media (max-width: 580px) {
+      .grid { grid-template-columns: 1fr; }
+      .span2, .span3 { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Agent<span>OS</span></div>
+  <div class="status-bar">
+    <span class="live" id="status-label">CONNECTING...</span>
+    <span id="clock">--:--:--</span>
+    <span>v0.1.0</span>
+  </div>
+</header>
+
+<div class="error-banner" id="error-banner">
+  ⚠ Cannot reach dashboard server — stats unavailable
+</div>
+
+<div class="grid">
+
+  <!-- GPU -->
+  <div class="card">
+    <div class="card-label">GPU</div>
+    <div class="card-value" id="gpu-name">--</div>
+    <div class="card-sub" id="gpu-sub">Loading...</div>
+    <div class="bar-track"><div class="bar-fill" id="gpu-bar" style="width:0%"></div></div>
+    <div class="card-sub" style="margin-top:0.4rem" id="gpu-pct">-- utilization</div>
+  </div>
+
+  <!-- RAM -->
+  <div class="card">
+    <div class="card-label">Memory</div>
+    <div class="card-value" id="ram-used">--</div>
+    <div class="card-sub" id="ram-sub">GB used</div>
+    <div class="bar-track"><div class="bar-fill warm" id="ram-bar" style="width:0%"></div></div>
+    <div class="card-sub" style="margin-top:0.4rem" id="ram-detail">--% · -- GB free</div>
+  </div>
+
+  <!-- Agents Running -->
+  <div class="card">
+    <div class="card-label">Active Agents</div>
+    <div class="card-value" id="agent-count">--</div>
+    <div class="card-sub">Running right now</div>
+    <div class="bar-track"><div class="bar-fill" id="agent-bar" style="width:0%"></div></div>
+    <div class="card-sub" style="margin-top:0.4rem" id="uptime-label">Uptime: --</div>
+  </div>
+
+  <!-- Models -->
+  <div class="card span2">
+    <div class="card-label">Installed Models</div>
+    <div class="model-list" id="model-list">
+      <div class="card-sub" style="margin-top:0.4rem">Loading models...</div>
+    </div>
+  </div>
+
+  <!-- CPU -->
+  <div class="card">
+    <div class="card-label">CPU</div>
+    <div class="card-value" id="cpu-pct">--%</div>
+    <div class="card-sub" id="cpu-sub">Loading...</div>
+    <div class="bar-track"><div class="bar-fill" id="cpu-bar" style="width:0%"></div></div>
+    <div class="card-sub" style="margin-top:0.4rem" id="cpu-detail">--</div>
+  </div>
+
+</div>
+
+<!-- Actions -->
+<div class="section">
+  <div class="section-title">Quick Actions</div>
+  <div class="actions">
+    <button class="btn" onclick="openWebUI()">Open Chat UI</button>
+    <button class="btn" onclick="pullModel()">+ Pull Model</button>
+    <button class="btn secondary" onclick="restartOllama()">Restart Ollama</button>
+    <button class="btn secondary" onclick="window.location='/model-manager'">Model Manager</button>
+    <button class="btn secondary" onclick="window.location='/agents'">Agent Manager</button>
+    <button class="btn secondary">View Logs</button>
+    <button class="btn secondary">System Settings</button>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="section">
+  <div class="section-title">System Log</div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+  // ── Clock ────────────────────────────────────────────
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-GB');
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ── Helpers ──────────────────────────────────────────
+  function el(id) { return document.getElementById(id); }
+
+  function barColor(pct) {
+    if (pct > 85) return 'hot';
+    if (pct > 60) return 'warm';
+    return '';
+  }
+
+  function setBar(barId, pct) {
+    const bar = el(barId);
+    bar.style.width = Math.min(100, pct) + '%';
+    bar.className = 'bar-fill ' + barColor(pct);
+  }
+
+  function addLog(type, msg) {
+    const log = el('log');
+    const div = document.createElement('div');
+    const tag = { ok: 'OK', warn: 'WARN', info: 'INFO' }[type] || 'INFO';
+    const ts = new Date().toLocaleTimeString('en-GB');
+    div.innerHTML = `<span class="${type}">[${tag}]</span> <span style="opacity:0.4">${ts}</span> ${msg}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+    // Keep log from growing forever
+    while (log.children.length > 100) log.removeChild(log.firstChild);
+  }
+
+  // ── Stats Polling ────────────────────────────────────
+  let connected = false;
+
+  async function fetchStats() {
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const s = await res.json();
+
+      // Mark as connected
+      if (!connected) {
+        connected = true;
+        el('status-label').textContent = 'SYSTEM ONLINE';
+        el('error-banner').classList.remove('visible');
+        addLog('ok', 'Connected to AgentOS dashboard');
+      }
+
+      // GPU
+      if (s.gpu_name && s.gpu_name !== 'CPU Only') {
+        el('gpu-name').textContent = s.gpu_name.replace('NVIDIA ', '').replace('GeForce ', '');
+        const gpuPct = s.gpu_percent ?? 0;
+        el('gpu-sub').textContent =
+          s.gpu_vram_used_gb !== null
+            ? `${s.gpu_vram_used_gb} GB / ${s.gpu_vram_total_gb} GB VRAM`
+            : 'VRAM data unavailable';
+        setBar('gpu-bar', gpuPct);
+        el('gpu-pct').textContent =
+          s.gpu_temp_c !== null
+            ? `${gpuPct}% · ${s.gpu_temp_c}°C`
+            : `${gpuPct}% utilization`;
+      } else {
+        el('gpu-name').textContent = 'CPU Only';
+        el('gpu-sub').textContent = 'No GPU detected';
+        setBar('gpu-bar', 0);
+        el('gpu-pct').textContent = 'Running on CPU';
+      }
+
+      // RAM
+      el('ram-used').textContent = s.ram_used_gb;
+      el('ram-sub').textContent = `GB used of ${s.ram_total_gb} GB`;
+      setBar('ram-bar', s.ram_percent);
+      const ramFree = (s.ram_total_gb - s.ram_used_gb).toFixed(1);
+      el('ram-detail').textContent = `${s.ram_percent}% · ${ramFree} GB free`;
+
+      // CPU
+      el('cpu-pct').textContent = s.cpu_percent + '%';
+      setBar('cpu-bar', s.cpu_percent);
+      el('cpu-sub').textContent = navigator.hardwareConcurrency
+        ? `${navigator.hardwareConcurrency} logical cores`
+        : 'CPU';
+
+      // Agents & Uptime
+      el('agent-count').textContent = s.agent_count;
+      setBar('agent-bar', Math.min(100, (s.agent_count / 10) * 100));
+      const h = Math.floor(s.uptime_hours);
+      const m = Math.round((s.uptime_hours - h) * 60);
+      el('uptime-label').textContent = `Uptime: ${h}h ${m}m`;
+
+    } catch (err) {
+      connected = false;
+      el('status-label').textContent = 'OFFLINE';
+      el('error-banner').classList.add('visible');
+    }
+  }
+
+  // ── Models Polling ───────────────────────────────────
+  async function fetchModels() {
+    try {
+      const res = await fetch('/api/models');
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = el('model-list');
+
+      if (!data.models || data.models.length === 0) {
+        list.innerHTML = '<div class="card-sub" style="margin-top:0.4rem">No models installed. Pull one below.</div>';
+        return;
+      }
+
+      list.innerHTML = data.models.map(m => `
+        <div class="model-row">
+          <span class="model-name">${m.name}</span>
+          <span class="model-badge idle">${m.size}</span>
+        </div>
+      `).join('');
+    } catch (_) {}
+  }
+
+  // ── Actions ──────────────────────────────────────────
+  function openWebUI() {
+    window.open('http://' + location.hostname + ':8080', '_blank');
+  }
+
+  async function pullModel() {
+    const model = prompt('Enter model name to pull (e.g. mistral:7b, llama3:8b):');
+    if (!model || !model.trim()) return;
+    addLog('info', `Pulling model: ${model.trim()}...`);
+    try {
+      const res = await fetch('/api/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: model.trim() }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        addLog('ok', data.message);
+        setTimeout(fetchModels, 5000); // Refresh model list after a delay
+      } else {
+        addLog('warn', `Pull failed: ${data.error}`);
+      }
+    } catch (_) {
+      addLog('warn', 'Could not reach server to pull model');
+    }
+  }
+
+  async function restartOllama() {
+    addLog('info', 'Restarting Ollama...');
+    try {
+      const res = await fetch('/api/restart', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        addLog('ok', data.message);
+      } else {
+        addLog('warn', `Restart failed: ${data.error}`);
+      }
+    } catch (_) {
+      addLog('warn', 'Could not reach server to restart Ollama');
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  addLog('info', 'Dashboard loaded');
+  fetchStats();
+  fetchModels();
+  setInterval(fetchStats, 5000);   // Refresh stats every 5 seconds
+  setInterval(fetchModels, 30000); // Refresh model list every 30 seconds
+</script>
+
+</body>
+</html>

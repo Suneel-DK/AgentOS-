@@ -1,0 +1,16 @@
+[Unit]
+Description=AgentOS First Boot Setup
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/agentos/scripts/first-boot.sh
+
+[Service]
+Type=oneshot
+ExecStart=/opt/agentos/scripts/first-boot.sh
+ExecStartPost=/bin/bash -c 'systemctl disable agentos-first-boot.service'
+StandardOutput=journal+console
+StandardError=journal+console
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

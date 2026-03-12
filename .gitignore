@@ -1,0 +1,10 @@
+# Claude Code
+CLAUDE.md
+
+# Build artifacts
+build/build-workspace/
+build/*.iso
+build/ubuntu-*.iso
+
+# Logs
+*.log

@@ -1,0 +1,32 @@
+# AgentOS - Pre-installed Packages
+# These are installed into the OS before the ISO is built
+
+# ── Core System ──────────────────────────────────────
+openssh-server          # Remote access
+curl                    # Download tool
+wget                    # Download tool  
+git                     # Version control
+htop                    # System monitor
+net-tools               # Network utilities
+ufw                     # Firewall
+unzip                   # File extraction
+
+# ── GPU Support ──────────────────────────────────────
+nvidia-driver-535       # NVIDIA GPU driver
+nvidia-cuda-toolkit     # NVIDIA CUDA
+rocm-dkms               # AMD GPU driver
+mesa-utils              # GPU utilities
+
+# ── Python & AI Runtime ──────────────────────────────
+python3                 # Python runtime
+python3-pip             # Python package manager
+python3-venv            # Virtual environments
+
+# ── Docker (for containerized agents) ────────────────
+docker.io               # Container runtime
+docker-compose          # Multi-container management
+
+# ── AgentOS Dashboard ────────────────────────────────
+nginx                   # Web server for dashboard
+nodejs                  # JavaScript runtime
+npm                     # Node package manager

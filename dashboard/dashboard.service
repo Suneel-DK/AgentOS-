@@ -1,0 +1,32 @@
+# AgentOS - Dashboard Systemd Service
+# Runs the dashboard server on port 3000, auto-starts on boot.
+#
+# Install:
+#   sudo cp dashboard.service /etc/systemd/system/agentos-dashboard.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now agentos-dashboard.service
+
+[Unit]
+Description=AgentOS Dashboard
+Documentation=https://github.com/Suneel-DK/AgentOS
+After=network.target ollama.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=agent
+Group=agent
+WorkingDirectory=/opt/agentos/dashboard
+ExecStart=/usr/bin/python3 /opt/agentos/dashboard/server.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agentos-dashboard
+
+# Hardening — dashboard only needs network and read access
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AgentOS — Model Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00ff88;
+      --accent2: #0088ff;
+      --text: #e0e0e0;
+      --muted: #555577;
+      --danger: #ff4466;
+      --warn: #ffaa00;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── Header ───────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; }
+    .logo span { color: var(--accent); }
+
+    .nav { display: flex; gap: 1rem; }
+    .nav a {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.08em;
+      padding: 0.4rem 0.8rem;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      transition: all 0.15s;
+    }
+    .nav a:hover { color: var(--text); border-color: var(--border); }
+    .nav a.active { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Layout ───────────────────────────────────────── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      margin: 1px;
+      min-height: calc(100vh - 70px);
+    }
+
+    .panel {
+      background: var(--surface);
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-count {
+      background: var(--border);
+      color: var(--muted);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+    }
+
+    /* ── Search ───────────────────────────────────────── */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.6rem 1rem;
+      border-radius: 3px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap input::placeholder { color: var(--muted); }
+
+    /* ── Model Cards ──────────────────────────────────── */
+    .model-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .model-card {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.9rem 1rem;
+      transition: border-color 0.15s;
+    }
+
+    .model-card:hover { border-color: var(--muted); }
+
+    .model-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+    }
+
+    .model-name {
+      font-size: 0.85rem;
+      color: var(--accent);
+    }
+
+    .model-actions { display: flex; gap: 0.4rem; align-items: center; }
+
+    .model-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 0.5rem;
+    }
+
+    .model-meta {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 0.62rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .tag.code    { border-color: #0088ff44; color: var(--accent2); }
+    .tag.fast    { border-color: #00ff8844; color: var(--accent); }
+    .tag.vision  { border-color: #aa44ff44; color: #cc88ff; }
+    .tag.rag     { border-color: #ffaa0044; color: var(--warn); }
+
+    .size-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    /* ── Buttons ──────────────────────────────────────── */
+    .btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      border-radius: 3px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: var(--accent); color: var(--bg); }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+    .btn.danger:hover { background: var(--danger); color: var(--bg); }
+
+    .btn.ghost {
+      border-color: var(--border);
+      color: var(--muted);
+    }
+    .btn.ghost:hover { border-color: var(--muted); color: var(--text); background: transparent; }
+
+    /* ── Progress bar ─────────────────────────────────── */
+    .progress-wrap {
+      display: none;
+      margin-top: 0.5rem;
+    }
+
+    .progress-wrap.visible { display: block; }
+
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 0.3rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.4s ease;
+      animation: pulse-bar 1.5s infinite;
+    }
+
+    @keyframes pulse-bar {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .progress-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+    }
+
+    /* ── Installed panel ──────────────────────────────── */
+    .installed-card {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      transition: border-color 0.15s;
+    }
+
+    .installed-card:hover { border-color: var(--muted); }
+
+    .installed-info { flex: 1; min-width: 0; }
+
+    .installed-name {
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .installed-meta { font-size: 0.68rem; color: var(--muted); }
+
+    /* ── Status toast ─────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.7rem 1.2rem;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.25s ease;
+      z-index: 1000;
+      max-width: 320px;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #toast.ok   { border-color: var(--accent); color: var(--accent); }
+    #toast.warn { border-color: var(--warn); color: var(--warn); }
+    #toast.err  { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Empty state ──────────────────────────────────── */
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 3rem 1rem;
+      line-height: 2;
+    }
+
+    /* ── Responsive ───────────────────────────────────── */
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Agent<span>OS</span> — Model Manager</div>
+  <nav class="nav">
+    <a href="/">Dashboard</a>
+    <a href="/model-manager" class="active">Models</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <!-- ── LEFT: Browse available models ───────────────── -->
+  <div class="panel">
+    <div class="panel-title">
+      Browse Models
+      <span class="badge-count" id="available-count">--</span>
+    </div>
+
+    <div class="search-wrap">
+      <input
+        type="text"
+        id="search"
+        placeholder="Search models (e.g. code, fast, llama)..."
+        oninput="filterModels()"
+        autocomplete="off"
+      />
+    </div>
+
+    <div class="model-list" id="available-list">
+      <div class="empty">Loading model catalog...</div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Installed models ─────────────────────── -->
+  <div class="panel">
+    <div class="panel-title">
+      Installed Models
+      <span class="badge-count" id="installed-count">--</span>
+    </div>
+
+    <div class="model-list" id="installed-list">
+      <div class="empty">Loading...</div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── State ────────────────────────────────────────────
+  let availableModels = [];
+  let installedModels = [];
+  let pulling = new Set(); // model names currently being pulled
+
+  // ── Toast notifications ───────────────────────────────
+  let toastTimer = null;
+  function toast(msg, type = 'ok') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ''; }, 3500);
+  }
+
+  // ── Tag color helper ──────────────────────────────────
+  const tagClass = {
+    code: 'code', fast: 'fast', 'cpu-friendly': 'fast',
+    vision: 'vision', multimodal: 'vision',
+    embeddings: 'rag', rag: 'rag',
+  };
+
+  function renderTags(tags) {
+    return (tags || []).map(t =>
+      `<span class="tag ${tagClass[t] || ''}">${t}</span>`
+    ).join('');
+  }
+
+  // ── Render: Available models ──────────────────────────
+  function renderAvailable() {
+    const query = document.getElementById('search').value.toLowerCase();
+    const filtered = availableModels.filter(m =>
+      !query ||
+      m.name.toLowerCase().includes(query) ||
+      m.desc.toLowerCase().includes(query) ||
+      (m.tags || []).some(t => t.includes(query))
+    );
+
+    document.getElementById('available-count').textContent = filtered.length;
+    const list = document.getElementById('available-list');
+
+    if (filtered.length === 0) {
+      list.innerHTML = `<div class="empty">No models match "${query}"</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(m => {
+      const isInstalled = installedModels.some(i => i.name === m.name || i.name.startsWith(m.name.split(':')[0] + ':'));
+      const isPulling = pulling.has(m.name);
+      return `
+        <div class="model-card" id="card-${m.name.replace(/[^a-z0-9]/gi, '_')}">
+          <div class="model-card-header">
+            <span class="model-name">${m.name}</span>
+            <div class="model-actions">
+              <span class="size-label">${m.size}</span>
+              ${isInstalled
+                ? `<button class="btn ghost" disabled>✓ Installed</button>`
+                : isPulling
+                  ? `<button class="btn" disabled>Pulling...</button>`
+                  : `<button class="btn" onclick="pullModel('${m.name}')">Download</button>`
+              }
+            </div>
+          </div>
+          <div class="model-desc">${m.desc}</div>
+          <div class="model-meta">${renderTags(m.tags)}</div>
+          <div class="progress-wrap ${isPulling ? 'visible' : ''}" id="progress-${m.name.replace(/[^a-z0-9]/gi, '_')}">
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+            <div class="progress-label">Downloading in background — check Installed tab when done</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Render: Installed models ──────────────────────────
+  function renderInstalled() {
+    document.getElementById('installed-count').textContent = installedModels.length;
+    const list = document.getElementById('installed-list');
+
+    if (installedModels.length === 0) {
+      list.innerHTML = `<div class="empty">No models installed yet.<br>Download one from the left panel.</div>`;
+      return;
+    }
+
+    list.innerHTML = installedModels.map(m => `
+      <div class="installed-card" id="installed-${m.name.replace(/[^a-z0-9]/gi, '_')}">
+        <div class="installed-info">
+          <div class="installed-name">${m.name}</div>
+          <div class="installed-meta">${m.size} &nbsp;·&nbsp; ${m.modified}</div>
+        </div>
+        <button class="btn danger" onclick="deleteModel('${m.name}')">Delete</button>
+      </div>
+    `).join('');
+  }
+
+  // ── Filter ────────────────────────────────────────────
+  function filterModels() {
+    renderAvailable();
+  }
+
+  // ── Pull model ────────────────────────────────────────
+  async function pullModel(name) {
+    pulling.add(name);
+    renderAvailable();
+    toast(`Starting download: ${name}`, 'ok');
+
+    try {
+      const res = await fetch('/api/models/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: name }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        toast(`Download failed: ${data.error}`, 'err');
+        pulling.delete(name);
+        renderAvailable();
+      }
+      // Poll installed list to detect when download completes
+      pollForCompletion(name);
+    } catch (_) {
+      toast('Could not reach server', 'err');
+      pulling.delete(name);
+      renderAvailable();
+    }
+  }
+
+  // ── Poll until model appears in installed list ────────
+  function pollForCompletion(name, attempts = 0) {
+    if (attempts > 120) { // give up after ~10 minutes
+      pulling.delete(name);
+      renderAvailable();
+      return;
+    }
+    setTimeout(async () => {
+      await fetchInstalled();
+      const found = installedModels.some(m => m.name === name || m.name.startsWith(name.split(':')[0]));
+      if (found) {
+        pulling.delete(name);
+        renderAvailable();
+        renderInstalled();
+        toast(`${name} downloaded and ready!`, 'ok');
+      } else {
+        pollForCompletion(name, attempts + 1);
+      }
+    }, 5000);
+  }
+
+  // ── Delete model ──────────────────────────────────────
+  async function deleteModel(name) {
+    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+    toast(`Deleting ${name}...`, 'warn');
+    try {
+      const res = await fetch(`/api/models/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.ok) {
+        toast(`Deleted ${name}`, 'ok');
+        await fetchInstalled();
+        renderInstalled();
+        renderAvailable();
+      } else {
+        toast(`Delete failed: ${data.error}`, 'err');
+      }
+    } catch (_) {
+      toast('Could not reach server', 'err');
+    }
+  }
+
+  // ── Fetch data ────────────────────────────────────────
+  async function fetchAvailable() {
+    try {
+      const res = await fetch('/api/models/available');
+      if (!res.ok) return;
+      const data = await res.json();
+      availableModels = data.models || [];
+    } catch (_) {}
+  }
+
+  async function fetchInstalled() {
+    try {
+      const res = await fetch('/api/models/installed');
+      if (!res.ok) return;
+      const data = await res.json();
+      installedModels = data.models || [];
+    } catch (_) {}
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  async function init() {
+    await Promise.all([fetchAvailable(), fetchInstalled()]);
+    renderAvailable();
+    renderInstalled();
+    // Refresh installed list every 15s in case a pull completes
+    setInterval(async () => {
+      await fetchInstalled();
+      renderInstalled();
+      renderAvailable();
+    }, 15000);
+  }
+
+  init();
+</script>
+
+</body>
+</html>
